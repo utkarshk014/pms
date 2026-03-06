@@ -2,6 +2,8 @@ import { auth } from "@/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardLayout({
     children,
 }: {
