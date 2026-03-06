@@ -16,7 +16,7 @@ export async function loginWithCredentials(prevState: string | undefined, formDa
                 case "CredentialsSignin":
                     return "Invalid email or password.";
                 default:
-                    return "Something went wrong.";
+                    return `AuthError: ${error.type} - ${error.message}`;
             }
         }
         throw error;
