@@ -54,7 +54,7 @@ export default function SubsidiaryLoginPage() {
                 setError(data.error || "Invalid OTP");
                 return;
             }
-            router.push("/subsidiary/mrf");
+            window.location.href = "/subsidiary/mrf";
         } catch {
             setError("Network error. Please try again.");
         } finally {
