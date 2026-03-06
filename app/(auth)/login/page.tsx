@@ -1,38 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useActionState, useState } from "react";
 import { ShoppingCart, Eye, EyeOff } from "lucide-react";
+import { loginWithCredentials } from "./actions";
 
 export default function LoginPage() {
-    const router = useRouter();
-    const [form, setForm] = useState({ email: "", password: "" });
-    const [error, setError] = useState("");
-    const [loading, setLoading] = useState(false);
+    const [error, action, isPending] = useActionState(loginWithCredentials, undefined);
     const [showPassword, setShowPassword] = useState(false);
-
-    async function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        setError("");
-        setLoading(true);
-        try {
-            const res = await signIn("credentials", {
-                email: form.email,
-                password: form.password,
-                redirect: false,
-            });
-            if (res?.error) {
-                setError("Invalid email or password.");
-            } else {
-                window.location.href = "/dashboard";
-            }
-        } catch {
-            setError("Something went wrong. Please try again.");
-        } finally {
-            setLoading(false);
-        }
-    }
 
     return (
         <div
@@ -58,15 +32,14 @@ export default function LoginPage() {
                         CPT Staff Login
                     </h2>
 
-                    <form onSubmit={handleSubmit}>
+                    <form action={action}>
                         <div className="form-group">
                             <label className="form-label" htmlFor="email">Email Address</label>
                             <input
                                 id="email"
+                                name="email"
                                 type="email"
                                 className="form-input"
-                                value={form.email}
-                                onChange={(e) => setForm({ ...form, email: e.target.value })}
                                 placeholder="admin@company.com"
                                 required
                                 autoComplete="email"
@@ -78,10 +51,9 @@ export default function LoginPage() {
                             <div style={{ position: "relative" }}>
                                 <input
                                     id="password"
+                                    name="password"
                                     type={showPassword ? "text" : "password"}
                                     className="form-input"
-                                    value={form.password}
-                                    onChange={(e) => setForm({ ...form, password: e.target.value })}
                                     placeholder="Enter your password"
                                     required
                                     autoComplete="current-password"
@@ -128,9 +100,9 @@ export default function LoginPage() {
                             type="submit"
                             className="btn btn-primary"
                             style={{ width: "100%", justifyContent: "center", padding: "9px" }}
-                            disabled={loading}
+                            disabled={isPending}
                         >
-                            {loading ? "Logging in..." : "Login"}
+                            {isPending ? "Logging in..." : "Login"}
                         </button>
                     </form>
 
