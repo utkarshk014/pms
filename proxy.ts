@@ -45,9 +45,15 @@ export default async function proxy(req: NextRequest) {
 
     // CPT routes - require NextAuth session (uses next-auth getToken to handle JWE decryption)
     if (CPT_ROUTES.some((route) => pathname.startsWith(route))) {
+        // NextAuth v5 beta uses different cookie names depending on protocol:
+        // - HTTP (local dev): "authjs.session-token"
+        // - HTTPS (Vercel prod): "__Secure-authjs.session-token"
+        const isSecure = req.url.startsWith("https://");
+        const cookieName = isSecure ? "__Secure-authjs.session-token" : "authjs.session-token";
         const token = await getToken({
             req,
             secret: process.env.AUTH_SECRET || "pms-dev-secret-key-change-in-production-minimum-32-chars",
+            cookieName,
         });
         if (!token) {
             return NextResponse.redirect(new URL("/login", req.url));
@@ -66,9 +72,12 @@ export default async function proxy(req: NextRequest) {
 
     // Root redirect
     if (pathname === "/") {
+        const isSecure = req.url.startsWith("https://");
+        const cookieName = isSecure ? "__Secure-authjs.session-token" : "authjs.session-token";
         const token = await getToken({
             req,
             secret: process.env.AUTH_SECRET || "pms-dev-secret-key-change-in-production-minimum-32-chars",
+            cookieName,
         });
         if (token) {
             return NextResponse.redirect(new URL("/dashboard", req.url));
