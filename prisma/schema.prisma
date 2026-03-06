@@ -1,0 +1,387 @@
+// Procurement Management System - Prisma Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────
+// MASTER TABLES
+// ─────────────────────────────────────────
+
+model MstCustomer {
+  id          String   @id @default(cuid())
+  name        String
+  address     String?
+  city        String?
+  state       String?
+  country     String?
+  email       String?
+  phone       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subsidiaries  MstSubsidiary[]
+  vendors       MstVendor[]
+  users         SwUserDetails[]
+  categories    StkCategory[]
+  groups        StkGroup[]
+  manufacturers StkManufacturer[]
+  stockItems    StkItemMaster[]
+  mrfs          MrfMaster[]
+
+  @@map("mst_customer")
+}
+
+model MstSubsidiary {
+  id         String   @id @default(cuid())
+  customerId String
+  code       String   @unique
+  name       String
+  address    String?
+  city       String?
+  state      String?
+  mobile     String
+  email      String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customer    MstCustomer   @relation(fields: [customerId], references: [id])
+  mrfs        MrfMaster[]
+  goodsInward GoodsInward[]
+  otpStore    OtpStore[]
+
+  @@map("mst_subsidiary")
+}
+
+model MstVendor {
+  id            String   @id @default(cuid())
+  customerId    String
+  name          String
+  address       String?
+  gstNo         String?
+  panNo         String?
+  contactPerson String?
+  mobile        String?
+  email         String?
+  vendorType    String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  customer          MstCustomer        @relation(fields: [customerId], references: [id])
+  rfqVendorMappings RfqVendorMapping[]
+  vendorQuoteItems  VendorQuoteItem[]
+  poMasters         PoMaster[]
+
+  @@map("mst_vendor")
+}
+
+model SwUserDetails {
+  id         String   @id @default(cuid())
+  customerId String
+  name       String
+  email      String   @unique
+  mobile     String?
+  password   String
+  role       UserRole @default(STAFF)
+  isActive   Boolean  @default(true)
+  isBlocked  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customer MstCustomer @relation(fields: [customerId], references: [id])
+
+  @@map("sw_user_details")
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+}
+
+// ─────────────────────────────────────────
+// STOCK TABLES
+// ─────────────────────────────────────────
+
+model StkCategory {
+  id         String   @id @default(cuid())
+  customerId String
+  name       String
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customer   MstCustomer     @relation(fields: [customerId], references: [id])
+  stockItems StkItemMaster[]
+
+  @@map("stk_category")
+}
+
+model StkGroup {
+  id         String   @id @default(cuid())
+  customerId String
+  name       String
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customer   MstCustomer     @relation(fields: [customerId], references: [id])
+  stockItems StkItemMaster[]
+
+  @@map("stk_group")
+}
+
+model StkManufacturer {
+  id         String   @id @default(cuid())
+  customerId String
+  name       String
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customer   MstCustomer     @relation(fields: [customerId], references: [id])
+  stockItems StkItemMaster[]
+
+  @@map("stk_manufacturer")
+}
+
+model StkItemMaster {
+  id               String    @id @default(cuid())
+  customerId       String
+  code             String    @unique
+  name             String
+  categoryId       String?
+  groupId          String?
+  manufacturerId   String?
+  uom              String    @default("Nos")
+  openingQty       Float     @default(0)
+  currentQty       Float     @default(0)
+  minLevel         Float     @default(0)
+  reorderLevel     Float     @default(0)
+  lastPurchaseDate DateTime?
+  lastPurchaseRate Float?
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  customer     MstCustomer      @relation(fields: [customerId], references: [id])
+  category     StkCategory?     @relation(fields: [categoryId], references: [id])
+  group        StkGroup?        @relation(fields: [groupId], references: [id])
+  manufacturer StkManufacturer? @relation(fields: [manufacturerId], references: [id])
+  mrfItems     MrfItem[]
+  vendorQuotes VendorQuoteItem[]
+
+  @@map("stk_item_master")
+}
+
+// ─────────────────────────────────────────
+// MRF TABLES
+// ─────────────────────────────────────────
+
+model MrfMaster {
+  id              String    @id @default(cuid())
+  customerId      String
+  subsidiaryId    String
+  mrfNumber       String    @unique
+  status          MrfStatus @default(DRAFT)
+  totalAmount     Float     @default(0)
+  remarks         String?
+  preferredVendor String?
+  requiredByDate  DateTime?
+  rejectedReason  String?
+  createdAt       DateTime  @default(now())
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  customer   MstCustomer   @relation(fields: [customerId], references: [id])
+  subsidiary MstSubsidiary @relation(fields: [subsidiaryId], references: [id])
+  mrfItems   MrfItem[]
+  rfqMasters RfqMaster[]
+  poMasters  PoMaster[]
+
+  @@map("mrf_master")
+}
+
+enum MrfStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  RFQ_SENT
+  PO_ISSUED
+  CLOSED
+}
+
+model MrfItem {
+  id           String  @id @default(cuid())
+  mrfId        String
+  itemId       String
+  description  String?
+  qty          Float
+  expectedRate Float   @default(0)
+  taxPercent   Float   @default(0)
+  otherCharges Float   @default(0)
+  totalAmount  Float   @default(0)
+
+  mrf  MrfMaster     @relation(fields: [mrfId], references: [id], onDelete: Cascade)
+  item StkItemMaster @relation(fields: [itemId], references: [id])
+
+  @@map("mrf_items")
+}
+
+// ─────────────────────────────────────────
+// RFQ TABLES
+// ─────────────────────────────────────────
+
+model RfqMaster {
+  id                 String    @id @default(cuid())
+  mrfId              String
+  rfqNumber          String    @unique
+  lastDateSubmission DateTime?
+  status             RfqStatus @default(OPEN)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  mrf               MrfMaster          @relation(fields: [mrfId], references: [id])
+  rfqVendorMappings RfqVendorMapping[]
+
+  @@map("rfq_master")
+}
+
+enum RfqStatus {
+  OPEN
+  CLOSED
+}
+
+model RfqVendorMapping {
+  id             String    @id @default(cuid())
+  rfqId          String
+  vendorId       String
+  secureToken    String    @unique @default(cuid())
+  tokenExpiresAt DateTime?
+  emailSent      Boolean   @default(false)
+  quoteSubmitted Boolean   @default(false)
+  submittedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  rfq    RfqMaster        @relation(fields: [rfqId], references: [id])
+  vendor MstVendor        @relation(fields: [vendorId], references: [id])
+  quotes VendorQuoteItem[]
+
+  @@map("rfq_vendor_mapping")
+}
+
+model VendorQuoteItem {
+  id               String   @id @default(cuid())
+  rfqId            String
+  vendorId         String
+  mappingId        String
+  itemId           String
+  technicalDetails String?
+  rate             Float    @default(0)
+  taxPercent       Float    @default(0)
+  otherCharges     Float    @default(0)
+  totalAmount      Float    @default(0)
+  deliveryDays     Int?
+  warranty         String?
+  terms            String?
+  createdAt        DateTime @default(now())
+
+  vendor  MstVendor        @relation(fields: [vendorId], references: [id])
+  item    StkItemMaster    @relation(fields: [itemId], references: [id])
+  mapping RfqVendorMapping @relation(fields: [mappingId], references: [id])
+
+  @@map("vendor_quote_items")
+}
+
+// ─────────────────────────────────────────
+// PO TABLES
+// ─────────────────────────────────────────
+
+model PoMaster {
+  id              String   @id @default(cuid())
+  mrfId           String
+  vendorId        String
+  poNumber        String   @unique
+  totalAmount     Float    @default(0)
+  deliveryPeriod  String?
+  paymentTerms    String?
+  termsConditions String?
+  status          PoStatus @default(ISSUED)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  mrf         MrfMaster        @relation(fields: [mrfId], references: [id])
+  vendor      MstVendor        @relation(fields: [vendorId], references: [id])
+  goodsInward GoodsInward[]
+  payments    PaymentDetails[]
+
+  @@map("po_master")
+}
+
+enum PoStatus {
+  ISSUED
+  DELIVERED
+  COMPLETED
+}
+
+model GoodsInward {
+  id           String   @id @default(cuid())
+  poId         String
+  subsidiaryId String
+  receivedDate DateTime
+  remarks      String?
+  createdAt    DateTime @default(now())
+
+  po         PoMaster      @relation(fields: [poId], references: [id])
+  subsidiary MstSubsidiary @relation(fields: [subsidiaryId], references: [id])
+
+  @@map("goods_inward")
+}
+
+model PaymentDetails {
+  id          String        @id @default(cuid())
+  poId        String
+  amountPaid  Float
+  paymentDate DateTime
+  paymentMode String?
+  referenceNo String?
+  status      PaymentStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  po PoMaster @relation(fields: [poId], references: [id])
+
+  @@map("payment_details")
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+}
+
+// ─────────────────────────────────────────
+// OTP STORE
+// ─────────────────────────────────────────
+
+model OtpStore {
+  id           String    @id @default(cuid())
+  mobile       String
+  code         String
+  subsidiaryId String?
+  purpose      String    @default("LOGIN")
+  expiresAt    DateTime
+  usedAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  subsidiary MstSubsidiary? @relation(fields: [subsidiaryId], references: [id])
+
+  @@map("otp_store")
+}
