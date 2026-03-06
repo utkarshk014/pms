@@ -1,7 +1,7 @@
-import { auth } from "@/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { redirect } from "next/navigation";
 
+// Auth is handled entirely by proxy.ts Edge middleware (getToken).
+// No need to call auth() here — if the request reached this layout, the user is authenticated.
 export const dynamic = "force-dynamic";
 
 export default async function DashboardLayout({
@@ -9,9 +9,6 @@ export default async function DashboardLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const session = await auth();
-    if (!session?.user) redirect("/login");
-
     return (
         <div className="flex h-screen overflow-hidden" style={{ background: "#f0f2f5" }}>
             <Sidebar />
