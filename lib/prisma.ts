@@ -1,6 +1,6 @@
 // Prisma v7: PrismaClient is generated into .prisma/client and re-exported from @prisma/client
 // The adapter-based constructor requires 'as any' casts for the options until Prisma v7 types stabilize
-import { PrismaClient } from ".prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as {
